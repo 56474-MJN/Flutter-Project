@@ -49,7 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context: context,
                 applicationName: 'Student Companion',
                 applicationVersion: '1.0',
-                children: const [Text('A sample frontend app for your semester project (Material 3).')],
+                children: const [Text('A sample frontend app for semester project (Material 3).')],
               );
             },
           ),

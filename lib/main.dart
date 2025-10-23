@@ -1,6 +1,3 @@
-// main.dart
-// Student Companion App - Mobile-first Material 3 frontend (complete)
-
 
 import 'package:class6/screens/splash.dart';
 import 'package:flutter/material.dart';
@@ -46,26 +43,6 @@ class _StudentCompanionAppState extends State<StudentCompanionApp> {
   }
 }
 
-
-
-
-/* -------------------- Home / Dashboard -------------------- */
-
-
-/* -------------------- Schedule -------------------- */
-
-
-/* -------------------- Assignments -------------------- */
-
-/* -------------------- Reminders -------------------- */
-
-
-/* -------------------- GPA Calculator -------------------- */
-
-
-/* -------------------- Settings -------------------- */
-
-/* -------------------- Demo Data (in-memory) -------------------- */
 class DemoData {
   static List<Map<String, dynamic>> classes = [
     {'title': 'Data Structures', 'time': '09:00 - 10:00', 'room': 'Room 201'},

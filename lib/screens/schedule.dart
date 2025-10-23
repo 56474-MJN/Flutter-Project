@@ -5,7 +5,6 @@ class ScheduleScreen extends StatefulWidget {
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
-
 class _ScheduleScreenState extends State<ScheduleScreen> {
   final TextEditingController _titleCtl = TextEditingController();
   final TextEditingController _timeCtl = TextEditingController();

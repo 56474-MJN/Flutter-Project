@@ -21,7 +21,7 @@ class _GpaCalculatorScreenState extends State<GpaCalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Dummy sample data for UI display (not stored)
+    // Dummy sample data for UI display
     final courses = [
       {'name': 'Software Engineering', 'credits': 3.0, 'grade': 'A'},
       {'name': 'Database Systems', 'credits': 4.0, 'grade': 'B+'},

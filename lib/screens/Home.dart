@@ -16,7 +16,7 @@ class HomeDashboard extends StatefulWidget {
 class _HomeDashboardState extends State<HomeDashboard> {
   @override
   Widget build(BuildContext context) {
-    // Mobile-first: single column layout with large touch targets
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),

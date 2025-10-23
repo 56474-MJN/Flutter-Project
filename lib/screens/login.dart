@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'Home.dart';
 class LoginScreen extends StatefulWidget {
   final Function(bool) onThemeChange;
