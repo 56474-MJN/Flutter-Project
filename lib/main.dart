@@ -1,8 +1,19 @@
-
 import 'package:class6/screens/splash.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: "AIzaSyB5IGd_NYID3A_Xg27VU5_biola36cpFgU",
+      appId: "1:515227245534:android:a7843f2fb86219aea55b4f",
+      messagingSenderId: "515227245534",
+      projectId: "student-cbc0c",
+    ),
+  );
+
   runApp(const StudentCompanionApp());
 }
 
