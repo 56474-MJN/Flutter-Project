@@ -66,13 +66,19 @@ class _HomeDashboardState extends State<HomeDashboard> {
             const SizedBox(height: 8),
             ...DemoData.assignments.take(3).map((a) {
               return Card(
+                color: const Color(0xFFF4F1FF),
                 margin: const EdgeInsets.only(bottom: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: ListTile(
-                  leading: Icon(Icons.assignment, color: Theme.of(context).colorScheme.primary),
+                  leading: Icon(Icons.assignment,
+                      color: Theme.of(context).colorScheme.primary),
                   title: Text(a['title']),
                   subtitle: Text('Due: ${a['dueLabel']}'),
-                  trailing: a['completed'] ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                  trailing: a['completed']
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : null,
                 ),
               );
             }).toList(),
@@ -91,11 +97,13 @@ class _OverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: const Color(0xFFF4F1FF),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       elevation: 3,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           Text(title, style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 8),
           Text(value, style: Theme.of(context).textTheme.headlineSmall),
@@ -122,7 +130,8 @@ class _ActionTile extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, size: 34, color: Theme.of(context).colorScheme.primary),
+            Icon(icon, size: 34,
+                color: Theme.of(context).colorScheme.primary),
             const SizedBox(height: 8),
             Text(label),
           ]),
