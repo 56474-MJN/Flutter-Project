@@ -1,6 +1,7 @@
 import 'package:class6/screens/remainders.dart';
 import 'package:class6/screens/schedule.dart';
 import 'package:class6/screens/settings.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../data/demo_data.dart';
 import 'assignment.dart';
@@ -42,7 +43,29 @@ class _HomeDashboardState extends State<HomeDashboard> {
               children: [
                 Expanded(child: _OverviewCard(title: 'Next Class', value: DemoData.nextClassSimple())),
                 const SizedBox(width: 12),
-                Expanded(child: _OverviewCard(title: 'Assignments Due', value: '${DemoData.pendingAssignmentsCount()}')),
+                Expanded(
+                  child: StreamBuilder(
+                    stream: FirebaseFirestore.instance
+                        .collection('assignments')
+                        .where('completed', isEqualTo: false)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return _OverviewCard(
+                          title: 'Assignments Due',
+                          value: '...',
+                        );
+                      }
+
+                      int pending = snapshot.data!.docs.length;
+
+                      return _OverviewCard(
+                        title: 'Assignments Due',
+                        value: '$pending'
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),

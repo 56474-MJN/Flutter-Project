@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/demo_data.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 class AssignmentsScreen extends StatefulWidget {
   const AssignmentsScreen({super.key});
   @override
@@ -16,22 +16,33 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
-      builder: (_) {
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
+      builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text('Add Assignment', style: Theme.of(context).textTheme.titleMedium),
+              Text('Add Assignment', style: Theme
+                  .of(context)
+                  .textTheme
+                  .titleMedium),
               const SizedBox(height: 8),
-              TextField(controller: _titleCtl, decoration: const InputDecoration(labelText: 'Title')),
+              TextField(controller: _titleCtl,
+                  decoration: const InputDecoration(labelText: 'Title')),
               const SizedBox(height: 8),
               Row(children: [
-                Expanded(child: Text(_pickedDate == null ? 'Pick due date' : _pickedDate!.toLocal().toString().split(' ')[0])),
+                Expanded(child: Text(
+                    _pickedDate == null ? 'Pick due date' : _pickedDate!
+                        .toLocal().toString().split(' ')[0])),
                 TextButton(
                   onPressed: () async {
-                    final d = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime(2000), lastDate: DateTime(2100));
+                    final d = await showDatePicker(context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100));
                     if (d != null) setState(() => _pickedDate = d);
                   },
                   child: const Text('Choose'),
@@ -41,15 +52,15 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               Row(children: [
                 Expanded(
                   child: FilledButton(
-                    onPressed: () {
-                      if (_titleCtl.text.trim().isEmpty || _pickedDate == null) return;
-                      setState(() {
-                        DemoData.assignments.insert(0, {
-                          'title': _titleCtl.text.trim(),
-                          'due': _pickedDate,
-                          'dueLabel': _pickedDate!.toLocal().toString().split(' ')[0],
-                          'completed': false,
-                        });
+                    onPressed: () async  {
+                      if (_titleCtl.text.trim().isEmpty || _pickedDate == null)
+                        return;
+                      await FirebaseFirestore.instance
+                          .collection('assignments')
+                          .add({
+                        'title': _titleCtl.text.trim(),
+                        'due': Timestamp.fromDate(_pickedDate!),
+                        'completed': false,
                       });
                       Navigator.pop(context);
                     },
@@ -72,34 +83,70 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final assignments = DemoData.assignments;
     return Scaffold(
       appBar: AppBar(title: const Text('Assignments')),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: assignments.length,
-        itemBuilder: (context, i) {
-          final a = assignments[i];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: CheckboxListTile(
-              value: a['completed'],
-              onChanged: (v) => setState(() => a['completed'] = v ?? false),
-              title: Text(a['title']),
-              subtitle: Text('Due: ${a['dueLabel']}'),
-              secondary: PopupMenuButton<String>(
-                itemBuilder: (_) => const [PopupMenuItem(child: Text('Delete'), value: 'del')],
-                onSelected: (v) {
-                  if (v == 'del') {
-                    setState(() => DemoData.assignments.removeAt(i));
-                  }
-                },
-              ),
-            ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('assignments')
+            .orderBy('due')
+            .snapshots(),
+        builder: (context, snap) {
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final docs = snap.data!.docs;
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: docs.length,
+            itemBuilder: (context, i) {
+              final doc = docs[i];
+              final data = doc.data() as Map<String, dynamic>;
+
+              final dueDate =
+              (data['due'] as Timestamp).toDate().toString().split(' ')[0];
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                child: CheckboxListTile(
+                  value: data['completed'],
+                  onChanged: (v)async {
+                    FirebaseFirestore.instance
+                        .collection('assignments')
+                        .doc(doc.id)
+                        .update({'completed': v ?? false});
+                  },
+
+                  title: Text(data['title']),
+                  subtitle: Text('Due: $dueDate'),
+
+                  secondary: PopupMenuButton<String>(
+                    itemBuilder: (_) =>
+                    const [
+                      PopupMenuItem(
+                        value: 'del',
+                        child: Text('Delete'),
+                      ),
+                    ],
+                    onSelected: (v) {
+                      if (v == 'del') {
+                        FirebaseFirestore.instance
+                            .collection('assignments')
+                            .doc(doc.id)
+                            .delete();
+                      }
+                    },
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(onPressed: _openAdd, child: const Icon(Icons.add_task)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAdd,
+        child: const Icon(Icons.add_task),
+      ),
     );
   }
 }
