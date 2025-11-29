@@ -81,30 +81,57 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 _ActionTile(icon: Icons.calendar_month, label: 'Schedule', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleScreen()))),
                 _ActionTile(icon: Icons.assignment, label: 'Assignments', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AssignmentsScreen()))),
                 _ActionTile(icon: Icons.alarm, label: 'Reminders', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) =>  RemindersScreen()))),
-                _ActionTile(icon: Icons.calculate, label: 'GPA', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GpaCalculatorScreen()))),
+                _ActionTile(icon: Icons.calculate, label: 'GPA', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const gpa_calculators()))),
               ],
             ),
             const SizedBox(height: 20),
             Text('Upcoming Assignments', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            ...DemoData.assignments.take(3).map((a) {
-              return Card(
-                color: const Color(0xFFF4F1FF),
-                margin: const EdgeInsets.only(bottom: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ListTile(
-                  leading: Icon(Icons.assignment,
-                      color: Theme.of(context).colorScheme.primary),
-                  title: Text(a['title']),
-                  subtitle: Text('Due: ${a['dueLabel']}'),
-                  trailing: a['completed']
-                      ? const Icon(Icons.check_circle, color: Colors.green)
-                      : null,
-                ),
-              );
-            }).toList(),
+            StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection('assignments')
+                  .where('completed', isEqualTo: false)
+                  .orderBy('due')
+                  .limit(5)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Text("Loading...");
+                }
+
+                if (snapshot.data!.docs.isEmpty) {
+                  return const Text("No upcoming assignments");
+                }
+
+                return Column(
+                  children: snapshot.data!.docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final dueDate = (data['due'] as Timestamp).toDate();
+                    final formattedDate =
+                        "${dueDate.year}-${dueDate.month}-${dueDate.day}";
+
+                    return Card(
+                      color: const Color(0xFFF4F1FF),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        leading: Icon(Icons.assignment,
+                            color: Theme.of(context).colorScheme.primary),
+                        title: Text(data['title']),
+                        subtitle: Text("Due: $formattedDate"),
+                        trailing: data['completed'] == true
+                            ? const Icon(Icons.check_circle, color: Colors.green)
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            )
+
+
           ],
         ),
       ),
