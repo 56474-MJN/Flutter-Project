@@ -14,9 +14,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   void _openAddDialog({String? docId, Map<String, dynamic>? data}) {
     if (data != null) {
-      _titleCtl.text = data['title'];
-      _timeCtl.text = data['time'];
-      _roomCtl.text = data['room'];
+      _titleCtl.text = data['title']?.toString() ?? '';
+      _timeCtl.text = data['time']?.toString() ?? '';
+      _roomCtl.text = data['room']?.toString() ?? '';
     } else {
       _titleCtl.clear();
       _timeCtl.clear();
@@ -101,13 +101,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               final doc = docs[i];
               final data = doc.data()! as Map<String, dynamic>;
 
+              // Extract time safely and handle null values
+              final timeString = data['time']?.toString() ?? '00:00';
+              final timeHour = timeString.split(':')[0];
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
-                  leading: CircleAvatar(child: Text(data['time'].toString().split(':')[0])),
-                  title: Text(data['title']),
-                  subtitle: Text('${data['time']} • ${data['room']}'),
+                  leading: CircleAvatar(child: Text(timeHour)),
+                  title: Text(data['title']?.toString() ?? 'No Title'),
+                  subtitle: Text('${data['time'] ?? 'No Time'} • ${data['room'] ?? 'No Room'}'),
                   trailing: PopupMenuButton<String>(
                     itemBuilder: (_) => const [
                       PopupMenuItem(child: Text('Edit'), value: 'edit'),
