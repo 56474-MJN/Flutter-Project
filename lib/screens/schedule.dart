@@ -1,137 +1,177 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
+
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  final TextEditingController _titleCtl = TextEditingController();
-  final TextEditingController _timeCtl = TextEditingController();
+  final TextEditingController _subjectCtl = TextEditingController();
   final TextEditingController _roomCtl = TextEditingController();
+  TimeOfDay? _selectedTime;
 
-  void _openAddDialog({String? docId, Map<String, dynamic>? data}) {
-    if (data != null) {
-      _titleCtl.text = data['title']?.toString() ?? '';
-      _timeCtl.text = data['time']?.toString() ?? '';
-      _roomCtl.text = data['room']?.toString() ?? '';
-    } else {
-      _titleCtl.clear();
-      _timeCtl.clear();
-      _roomCtl.clear();
-    }
-
-    showModalBottomSheet(
+  /// -----------------------------
+  /// PICK TIME
+  /// -----------------------------
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(data != null ? 'Edit Class' : 'Add Class',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 10),
-              TextField(controller: _titleCtl, decoration: const InputDecoration(labelText: 'Subject')),
-              const SizedBox(height: 8),
-              TextField(controller: _timeCtl, decoration: const InputDecoration(labelText: 'Time')),
-              const SizedBox(height: 8),
-              TextField(controller: _roomCtl, decoration: const InputDecoration(labelText: 'Room')),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                  child: FilledButton(
-                    onPressed: () async {
-                      if (_titleCtl.text.isEmpty || _timeCtl.text.isEmpty) return;
-                      final col = FirebaseFirestore.instance.collection('classes');
-                      if (docId == null) {
-                        await col.add({
-                          'title': _titleCtl.text.trim(),
-                          'time': _timeCtl.text.trim(),
-                          'room': _roomCtl.text.trim(),
-                          'createdAt': DateTime.now(),
-                        });
-                      } else {
-                        await col.doc(docId).update({
-                          'title': _titleCtl.text.trim(),
-                          'time': _timeCtl.text.trim(),
-                          'room': _roomCtl.text.trim(),
-                        });
-                      }
-                      Navigator.pop(context);
-                    },
-                    child: Text(data != null ? 'Update' : 'Save'),
-                  ),
-                ),
-              ])
-            ]),
-          ),
-        );
-      },
+      initialTime: TimeOfDay.now(),
     );
+
+    if (picked != null) {
+      setState(() => _selectedTime = picked);
+    }
   }
 
-  @override
-  void dispose() {
-    _titleCtl.dispose();
-    _timeCtl.dispose();
-    _roomCtl.dispose();
-    super.dispose();
+  /// -----------------------------
+  /// SAVE CLASS (UPDATED to include startSort)
+  /// -----------------------------
+  Future<void> _saveClass() async {
+    if (_subjectCtl.text.isEmpty ||
+        _roomCtl.text.isEmpty ||
+        _selectedTime == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Fill all fields")));
+      return;
+    }
+
+    // Convert TimeOfDay to a DateTime object for formatting
+    final now = DateTime.now();
+    final dt = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      _selectedTime!.hour,
+      _selectedTime!.minute,
+    );
+
+    final formattedTime = DateFormat("hh:mm a").format(dt);
+
+    // CRITICAL FIX: Calculate the sortable integer (e.g., 9:30 AM -> 930)
+    final startSort = _selectedTime!.hour * 100 + _selectedTime!.minute;
+
+    // Save to Firestore
+    await FirebaseFirestore.instance.collection('classes').add({
+      'subject': _subjectCtl.text,
+      'startTime': formattedTime,
+      'room': _roomCtl.text,
+      'startSort': startSort, // <--- ADDED: Essential for filtering next class
+    });
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("Class Added")));
+
+    _subjectCtl.clear();
+    _roomCtl.clear();
+    setState(() => _selectedTime = null);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Schedule')),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('classes').orderBy('createdAt').snapshots(),
-        builder: (context, snap) {
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-          final docs = snap.data!.docs;
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: docs.length,
-            itemBuilder: (context, i) {
-              final doc = docs[i];
-              final data = doc.data()! as Map<String, dynamic>;
-
-              // Extract time safely and handle null values
-              final timeString = data['time']?.toString() ?? '00:00';
-              final timeHour = timeString.split(':')[0];
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: ListTile(
-                  leading: CircleAvatar(child: Text(timeHour)),
-                  title: Text(data['title']?.toString() ?? 'No Title'),
-                  subtitle: Text('${data['time'] ?? 'No Time'} • ${data['room'] ?? 'No Room'}'),
-                  trailing: PopupMenuButton<String>(
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(child: Text('Edit'), value: 'edit'),
-                      PopupMenuItem(child: Text('Delete'), value: 'del'),
-                    ],
-                    onSelected: (v) {
-                      if (v == 'del') {
-                        FirebaseFirestore.instance.collection('classes').doc(doc.id).delete();
-                      } else if (v == 'edit') {
-                        _openAddDialog(docId: doc.id, data: data);
-                      }
-                    },
-                  ),
-                ),
-              );
-            },
-          );
-        },
+      appBar: AppBar(
+        title: const Text("Create Schedule"),
+        backgroundColor: Colors.blue,
       ),
-      floatingActionButton: FloatingActionButton(onPressed: () => _openAddDialog(), child: const Icon(Icons.add)),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            /// SUBJECT
+            TextField(
+              controller: _subjectCtl,
+              decoration: const InputDecoration(labelText: "Subject"),
+            ),
+
+            const SizedBox(height: 20),
+
+            /// ROOM
+            TextField(
+              controller: _roomCtl,
+              decoration: const InputDecoration(labelText: "Room Number"),
+            ),
+
+            const SizedBox(height: 20),
+
+            /// TIME PICKER
+            Row(
+              children: [
+                ElevatedButton(
+                  onPressed: _pickTime,
+                  child: const Text("Pick Time"),
+                ),
+                const SizedBox(width: 20),
+                Text(
+                  _selectedTime == null
+                      ? "No time selected"
+                      : _selectedTime!.format(context),
+                  style: const TextStyle(fontSize: 16),
+                )
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            /// SAVE BUTTON
+            ElevatedButton(
+              onPressed: _saveClass,
+              child: const Text("Save Class"),
+            ),
+
+            const SizedBox(height: 25),
+
+            const Text(
+              "Saved Classes:",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 10),
+
+            /// -----------------------------
+            /// LIVE FIRESTORE DATA LIST
+            /// -----------------------------
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('classes')
+                    .orderBy('startSort') // Order by the new sort field
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final docs = snapshot.data!.docs;
+
+                  if (docs.isEmpty) {
+                    return const Center(child: Text("No classes added yet"));
+                  }
+
+                  return ListView.builder(
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final data = docs[index].data() as Map<String, dynamic>;
+                      return Card(
+                        child: ListTile(
+                          title: Text(data['subject'] ?? 'N/A'),
+                          subtitle: Text(
+                              "Time: ${data['startTime'] ?? 'N/A'}  |  Room: ${data['room'] ?? 'N/A'}"),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
